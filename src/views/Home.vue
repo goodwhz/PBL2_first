@@ -52,44 +52,92 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { usePoemStore } from '../stores/poemStore'
 import PoemCard from '../components/PoemCard.vue'
 
 const poemStore = usePoemStore()
 const activeTag = ref('')
-const itemsPerPage = 6
 const currentPage = ref(1)
+const loading = ref(false)
 
-const popularTags = ['全部', '思乡', '春天', '爱情', '自然', '哲理']
+// 使用动态标签
+const popularTags = computed(() => {
+  const baseTags = ['全部']
+  if (poemStore.tags && poemStore.tags.length > 0) {
+    const tagNames = poemStore.tags.slice(0, 5).map(tag => tag.name)
+    return [...baseTags, ...tagNames]
+  }
+  return [...baseTags, '思乡', '春天', '爱情', '自然', '哲理']
+})
 
 const filteredPoems = computed(() => {
-  let poems = poemStore.poems
-  if (activeTag.value && activeTag.value !== '全部') {
-    poems = poemStore.getPoemsByTag(activeTag.value)
-  }
-  return poems.slice(0, currentPage.value * itemsPerPage)
+  return poemStore.poems
 })
 
 const hasMore = computed(() => {
-  let totalPoems = poemStore.poems.length
-  if (activeTag.value && activeTag.value !== '全部') {
-    totalPoems = poemStore.getPoemsByTag(activeTag.value).length
-  }
-  return filteredPoems.value.length < totalPoems
+  return poemStore.pagination.page < poemStore.pagination.totalPages
 })
 
-const filterByTag = (tag) => {
+const filterByTag = async (tag) => {
   activeTag.value = tag
   currentPage.value = 1
+  loading.value = true
+  
+  try {
+    if (tag === '全部' || !tag) {
+      await poemStore.fetchPoems(1)
+    } else {
+      const tagObj = poemStore.tags.find(t => t.name === tag)
+      if (tagObj) {
+        await poemStore.fetchPoemsByTag(tagObj.id, 1)
+      }
+    }
+  } catch (error) {
+    console.error('筛选诗歌失败:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
-const loadMore = () => {
+const loadMore = async () => {
+  if (loading.value || !hasMore.value) return
+  
+  loading.value = true
   currentPage.value += 1
+  
+  try {
+    if (activeTag.value === '全部' || !activeTag.value) {
+      await poemStore.fetchPoems(currentPage.value)
+    } else {
+      const tagObj = poemStore.tags.find(t => t.name === activeTag.value)
+      if (tagObj) {
+        await poemStore.fetchPoemsByTag(tagObj.id, currentPage.value)
+      }
+    }
+  } catch (error) {
+    console.error('加载更多失败:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
-onMounted(() => {
-  // 可以在这里添加数据加载逻辑
+onMounted(async () => {
+  loading.value = true
+  try {
+    await poemStore.initializeData()
+  } catch (error) {
+    console.error('初始化数据失败:', error)
+  } finally {
+    loading.value = false
+  }
+})
+
+// 监听错误状态
+watch(() => poemStore.error, (error) => {
+  if (error) {
+    console.error('Store错误:', error)
+  }
 })
 </script>
 

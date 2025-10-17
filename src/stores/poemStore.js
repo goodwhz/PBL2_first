@@ -1,111 +1,289 @@
 import { defineStore } from 'pinia'
+import { PoemService } from '../services/poemService.js'
 
 export const usePoemStore = defineStore('poem', {
   state: () => ({
-    poems: [
-      {
-        id: 1,
-        title: '静夜思',
-        author: '李白',
-        dynasty: '唐',
-        content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
-        tags: ['思乡', '月亮'],
-        background: '这首诗写于开元十四年（726年）九月十五日的扬州旅舍，时李白26岁。'
-      },
-      {
-        id: 2,
-        title: '春晓',
-        author: '孟浩然',
-        dynasty: '唐',
-        content: '春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。',
-        tags: ['春天', '自然'],
-        background: '这首诗是诗人隐居在鹿门山时所作，意境十分优美。'
-      },
-      {
-        id: 3,
-        title: '登鹳雀楼',
-        author: '王之涣',
-        dynasty: '唐',
-        content: '白日依山尽，黄河入海流。欲穷千里目，更上一层楼。',
-        tags: ['登高', '哲理'],
-        background: '此诗不仅刻画了祖国的壮丽山河，而且蕴含着登高才能望远的哲理。'
-      },
-      {
-        id: 4,
-        title: '相思',
-        author: '王维',
-        dynasty: '唐',
-        content: '红豆生南国，春来发几枝。愿君多采撷，此物最相思。',
-        tags: ['爱情', '思念'],
-        background: '这是借咏物而寄相思的诗，是眷怀友人之作。'
-      },
-      {
-        id: 5,
-        title: '江雪',
-        author: '柳宗元',
-        dynasty: '唐',
-        content: '千山鸟飞绝，万径人踪灭。孤舟蓑笠翁，独钓寒江雪。',
-        tags: ['冬天', '孤独'],
-        background: '此诗作于柳宗元谪居永州期间，寄托诗人清高孤傲的情感。'
-      },
-      {
-        id: 6,
-        title: '悯农',
-        author: '李绅',
-        dynasty: '唐',
-        content: '锄禾日当午，汗滴禾下土。谁知盘中餐，粒粒皆辛苦。',
-        tags: ['劳动', '节俭'],
-        background: '这首诗反映了中国封建时代农民的生存状态，表达了诗人对农民的同情。'
-      }
-    ],
-    currentPoem: null
+    poems: [],
+    currentPoem: null,
+    tags: [],
+    authors: [],
+    dynasties: [],
+    loading: false,
+    error: null,
+    pagination: {
+      page: 1,
+      pageSize: 10,
+      total: 0,
+      totalPages: 0
+    }
   }),
   
   getters: {
     getPoemById: (state) => (id) => {
-      return state.poems.find(poem => poem.id === parseInt(id))
+      return state.poems.find(poem => poem.id === id)
     },
     
-    getPoemsByAuthor: (state) => (author) => {
-      return state.poems.filter(poem => poem.author === author)
-    },
-    
-    getPoemsByTag: (state) => (tag) => {
-      return state.poems.filter(poem => poem.tags.includes(tag))
-    }
+    isLoading: (state) => state.loading,
+    hasError: (state) => state.error !== null
   },
   
   actions: {
+    // 设置当前诗歌
     setCurrentPoem(poem) {
       this.currentPoem = poem
     },
     
-    searchPoems(keyword) {
-      const lowerKeyword = keyword.toLowerCase()
-      return this.poems.filter(poem => 
-        poem.title.toLowerCase().includes(lowerKeyword) || 
-        poem.author.toLowerCase().includes(lowerKeyword) ||
-        poem.content.toLowerCase().includes(lowerKeyword) ||
-        poem.tags.some(tag => tag.toLowerCase().includes(lowerKeyword))
-      )
+    // 清除错误
+    clearError() {
+      this.error = null
     },
     
-    getPoemsByDynasty(dynasty) {
-      return this.poems.filter(poem => poem.dynasty === dynasty)
+    // 获取所有诗歌
+    async fetchPoems(page = 1, pageSize = 10) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const result = await PoemService.getPoems(page, pageSize)
+        this.poems = result.poems
+        this.pagination = {
+          page: result.page,
+          pageSize: result.pageSize,
+          total: result.total,
+          totalPages: result.totalPages
+        }
+      } catch (error) {
+        this.error = error.message
+        console.error('获取诗歌列表失败:', error)
+      } finally {
+        this.loading = false
+      }
     },
     
-    getAllTags() {
-      const allTags = this.poems.flatMap(poem => poem.tags)
-      return [...new Set(allTags)]
+    // 根据ID获取诗歌详情
+    async fetchPoemById(id) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const poem = await PoemService.getPoemById(id)
+        this.currentPoem = poem
+        return poem
+      } catch (error) {
+        this.error = error.message
+        console.error('获取诗歌详情失败:', error)
+        return null
+      } finally {
+        this.loading = false
+      }
     },
     
-    getPoemsByTag(tag) {
-      return this.poems.filter(poem => poem.tags.includes(tag))
+    // 搜索诗歌
+    async searchPoems(keyword, page = 1, pageSize = 10) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const result = await PoemService.searchPoems(keyword, page, pageSize)
+        this.poems = result.poems
+        this.pagination = {
+          page: result.page,
+          pageSize: result.pageSize,
+          total: result.total,
+          totalPages: result.totalPages
+        }
+        return result.poems
+      } catch (error) {
+        this.error = error.message
+        console.error('搜索诗歌失败:', error)
+        return []
+      } finally {
+        this.loading = false
+      }
     },
     
-    getAllAuthors() {
-      const authors = this.poems.map(poem => poem.author)
-      return [...new Set(authors)]
+    // 根据作者获取诗歌
+    async fetchPoemsByAuthor(authorId, page = 1, pageSize = 10) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const result = await PoemService.getPoemsByAuthor(authorId, page, pageSize)
+        this.poems = result.poems
+        this.pagination = {
+          page: result.page,
+          pageSize: result.pageSize,
+          total: result.total,
+          totalPages: result.totalPages
+        }
+      } catch (error) {
+        this.error = error.message
+        console.error('获取作者诗歌失败:', error)
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    // 根据朝代获取诗歌
+    async fetchPoemsByDynasty(dynastyId, page = 1, pageSize = 10) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const result = await PoemService.getPoemsByDynasty(dynastyId, page, pageSize)
+        this.poems = result.poems
+        this.pagination = {
+          page: result.page,
+          pageSize: result.pageSize,
+          total: result.total,
+          totalPages: result.totalPages
+        }
+      } catch (error) {
+        this.error = error.message
+        console.error('获取朝代诗歌失败:', error)
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    // 根据标签获取诗歌
+    async fetchPoemsByTag(tagId, page = 1, pageSize = 10) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const result = await PoemService.getPoemsByTag(tagId, page, pageSize)
+        this.poems = result.poems
+        this.pagination = {
+          page: result.page,
+          pageSize: result.pageSize,
+          total: result.total,
+          totalPages: result.totalPages
+        }
+      } catch (error) {
+        this.error = error.message
+        console.error('获取标签诗歌失败:', error)
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    // 添加新诗歌
+    async addPoem(poemData) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const newPoem = await PoemService.addPoem(poemData)
+        this.poems.unshift(newPoem)
+        return newPoem
+      } catch (error) {
+        this.error = error.message
+        console.error('添加诗歌失败:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    // 更新诗歌
+    async updatePoem(id, poemData) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const updatedPoem = await PoemService.updatePoem(id, poemData)
+        const index = this.poems.findIndex(poem => poem.id === id)
+        if (index !== -1) {
+          this.poems[index] = updatedPoem
+        }
+        if (this.currentPoem && this.currentPoem.id === id) {
+          this.currentPoem = updatedPoem
+        }
+        return updatedPoem
+      } catch (error) {
+        this.error = error.message
+        console.error('更新诗歌失败:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    // 删除诗歌
+    async deletePoem(id) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        await PoemService.deletePoem(id)
+        this.poems = this.poems.filter(poem => poem.id !== id)
+        if (this.currentPoem && this.currentPoem.id === id) {
+          this.currentPoem = null
+        }
+        return true
+      } catch (error) {
+        this.error = error.message
+        console.error('删除诗歌失败:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    // 获取所有标签
+    async fetchAllTags() {
+      this.loading = true
+      this.error = null
+      
+      try {
+        this.tags = await PoemService.getAllTags()
+      } catch (error) {
+        this.error = error.message
+        console.error('获取标签失败:', error)
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    // 获取所有作者
+    async fetchAllAuthors() {
+      this.loading = true
+      this.error = null
+      
+      try {
+        this.authors = await PoemService.getAllAuthors()
+      } catch (error) {
+        this.error = error.message
+        console.error('获取作者失败:', error)
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    // 获取所有朝代
+    async fetchAllDynasties() {
+      this.loading = true
+      this.error = null
+      
+      try {
+        this.dynasties = await PoemService.getAllDynasties()
+      } catch (error) {
+        this.error = error.message
+        console.error('获取朝代失败:', error)
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    // 初始化数据
+    async initializeData() {
+      await Promise.all([
+        this.fetchAllTags(),
+        this.fetchAllAuthors(),
+        this.fetchAllDynasties(),
+        this.fetchPoems()
+      ])
     }
   }
 })
