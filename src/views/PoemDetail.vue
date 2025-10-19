@@ -4,8 +4,8 @@
     <div class="text-center mb-12">
       <h1 class="poem-title text-4xl mb-4">{{ poem.title }}</h1>
       <div class="flex items-center justify-center space-x-6 text-lg text-gray-600">
-        <span class="author-badge text-base">{{ poem.author }}</span>
-        <span class="dynasty-tag text-base">{{ poem.dynasty }}</span>
+        <span class="author-badge text-base">{{ poem.author?.name || poem.author_name || '未知作者' }}</span>
+        <span class="dynasty-tag text-base">{{ poem.dynasty?.name || poem.dynasty_name || '未知朝代' }}</span>
       </div>
     </div>
 
@@ -74,7 +74,7 @@
           class="poem-card p-4 cursor-pointer"
         >
           <h4 class="font-title text-lg text-primary mb-2">{{ relatedPoem.title }}</h4>
-          <p class="text-gray-600 text-sm">{{ relatedPoem.author }} · {{ relatedPoem.dynasty }}</p>
+          <p class="text-gray-600 text-sm">{{ relatedPoem.author?.name || relatedPoem.author_name || '未知作者' }} · {{ relatedPoem.dynasty?.name || relatedPoem.dynasty_name || '未知朝代' }}</p>
           <p class="text-gray-700 mt-2 line-clamp-2">{{ relatedPoem.content.substring(0, 30) }}...</p>
         </div>
       </div>
@@ -108,7 +108,7 @@ const formattedContent = computed(() => {
 const relatedPoems = computed(() => {
   if (!poem.value) return []
   return poemStore.poems
-    .filter(p => p.id !== poem.value.id && p.author === poem.value.author)
+    .filter(p => p.id !== poem.value.id && p.author?.name === poem.value.author?.name)
     .slice(0, 4)
 })
 
@@ -140,7 +140,7 @@ const toggleFontSize = () => {
 }
 
 const copyToClipboard = async () => {
-  const text = `${poem.value.title}\n${poem.value.author} · ${poem.value.dynasty}\n\n${poem.value.content}`
+  const text = `${poem.value.title}\n${poem.value.author?.name || poem.value.author_name || '未知作者'} · ${poem.value.dynasty?.name || poem.value.dynasty_name || '未知朝代'}\n\n${poem.value.content}`
   try {
     await navigator.clipboard.writeText(text)
     alert('诗词已复制到剪贴板')
@@ -153,9 +153,27 @@ const goToPoem = (poemId) => {
   router.push(`/poem/${poemId}`)
 }
 
-onMounted(() => {
+onMounted(async () => {
   const poemId = parseInt(route.params.id)
-  poem.value = poemStore.getPoemById(poemId)
+  try {
+    poem.value = await poemStore.fetchPoemById(poemId)
+    // 如果获取到的数据是降级数据，显示友好提示
+    if (poem.value && poem.value.content.includes('暂时无法获取诗词内容')) {
+      console.warn('诗词数据加载异常，使用降级数据')
+    }
+  } catch (error) {
+    console.error('获取诗词详情失败:', error)
+    // 设置降级数据
+    poem.value = {
+      id: poemId,
+      title: '诗词详情',
+      content: '暂时无法获取诗词内容，请检查网络连接或稍后重试。',
+      author: { name: '未知作者' },
+      dynasty: { name: '未知朝代' },
+      tags: [],
+      background: '诗词信息暂时无法加载。'
+    }
+  }
 })
 </script>
 

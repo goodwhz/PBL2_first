@@ -4,8 +4,8 @@
     <div class="mb-4">
       <h3 class="poem-title mb-2">{{ poem.title }}</h3>
       <div class="flex items-center space-x-3 text-sm text-gray-600">
-        <span class="author-badge">{{ poem.author }}</span>
-        <span class="dynasty-tag">{{ poem.dynasty }}</span>
+        <span class="author-badge">{{ poem.author?.name || poem.author_name || '未知作者' }}</span>
+        <span class="dynasty-tag">{{ poem.dynasty?.name || poem.dynasty_name || '未知朝代' }}</span>
       </div>
     </div>
 

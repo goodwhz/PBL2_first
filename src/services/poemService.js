@@ -18,8 +18,15 @@ export class PoemService {
 
     if (error) throw new Error(`获取诗歌列表失败: ${error.message}`)
     
+    // 格式化数据，确保显示正确
+    const formattedPoems = (data || []).map(poem => ({
+      ...poem,
+      author_name: poem.author?.name || poem.author,
+      dynasty_name: poem.dynasty?.name || poem.dynasty
+    }))
+    
     return {
-      poems: data || [],
+      poems: formattedPoems,
       total: count || 0,
       page,
       pageSize,
@@ -29,24 +36,50 @@ export class PoemService {
 
   // 根据ID获取诗歌详情
   static async getPoemById(id) {
-    const { data, error } = await supabase
-      .from(TABLES.POEMS)
-      .select(`
-        *,
-        author:author_id(*),
-        dynasty:dynasty_id(*),
-        tags:poem_tags(tag:tag_id(*))
-      `)
-      .eq('id', id)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.POEMS)
+        .select(`
+          *,
+          author:author_id(*),
+          dynasty:dynasty_id(*),
+          tags:poem_tags(tag:tag_id(*))
+        `)
+        .eq('id', id)
+        .single()
 
-    if (error) throw new Error(`获取诗歌详情失败: ${error.message}`)
-    
-    if (data) {
-      data.tags = data.tags.map(pt => pt.tag)
+      if (error) {
+        console.error('Supabase查询错误:', error)
+        // 返回降级数据，避免应用崩溃
+        return {
+          id: id,
+          title: '诗词详情',
+          content: '暂时无法获取诗词内容，请检查网络连接或稍后重试。',
+          author: { name: '未知作者' },
+          dynasty: { name: '未知朝代' },
+          tags: [],
+          background: '诗词信息暂时无法加载。'
+        }
+      }
+      
+      if (data) {
+        data.tags = data.tags.map(pt => pt.tag)
+      }
+      
+      return data
+    } catch (error) {
+      console.error('获取诗歌详情异常:', error)
+      // 返回降级数据
+      return {
+        id: id,
+        title: '诗词详情',
+        content: '暂时无法获取诗词内容，请检查网络连接或稍后重试。',
+        author: { name: '未知作者' },
+        dynasty: { name: '未知朝代' },
+        tags: [],
+        background: '诗词信息暂时无法加载。'
+      }
     }
-    
-    return data
   }
 
   // 搜索诗歌
@@ -67,8 +100,15 @@ export class PoemService {
 
     if (error) throw new Error(`搜索诗歌失败: ${error.message}`)
     
+    // 格式化数据，确保显示正确
+    const formattedPoems = (data || []).map(poem => ({
+      ...poem,
+      author_name: poem.author?.name || poem.author,
+      dynasty_name: poem.dynasty?.name || poem.dynasty
+    }))
+    
     return {
-      poems: data || [],
+      poems: formattedPoems,
       total: count || 0,
       page,
       pageSize,
@@ -94,8 +134,15 @@ export class PoemService {
 
     if (error) throw new Error(`获取作者诗歌失败: ${error.message}`)
     
+    // 格式化数据，确保显示正确
+    const formattedPoems = (data || []).map(poem => ({
+      ...poem,
+      author_name: poem.author?.name || poem.author,
+      dynasty_name: poem.dynasty?.name || poem.dynasty
+    }))
+    
     return {
-      poems: data || [],
+      poems: formattedPoems,
       total: count || 0,
       page,
       pageSize,
@@ -121,8 +168,15 @@ export class PoemService {
 
     if (error) throw new Error(`获取朝代诗歌失败: ${error.message}`)
     
+    // 格式化数据，确保显示正确
+    const formattedPoems = (data || []).map(poem => ({
+      ...poem,
+      author_name: poem.author?.name || poem.author,
+      dynasty_name: poem.dynasty?.name || poem.dynasty
+    }))
+    
     return {
-      poems: data || [],
+      poems: formattedPoems,
       total: count || 0,
       page,
       pageSize,
@@ -151,8 +205,15 @@ export class PoemService {
     
     const poems = data ? data.map(item => item.poem) : []
     
+    // 格式化数据，确保显示正确
+    const formattedPoems = poems.map(poem => ({
+      ...poem,
+      author_name: poem.author?.name || poem.author,
+      dynasty_name: poem.dynasty?.name || poem.dynasty
+    }))
+    
     return {
-      poems,
+      poems: formattedPoems,
       total: count || 0,
       page,
       pageSize,
