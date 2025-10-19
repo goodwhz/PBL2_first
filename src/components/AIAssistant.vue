@@ -138,12 +138,13 @@ const sendMessage = async () => {
 
 // 调用Dify API
 const fetchDifyAPI = async (message) => {
-  // Dify API配置
-  const difyApiUrl = import.meta.env.VITE_DIFY_API_URL || 'https://api.dify.ai/v1/completion-messages'
+  // Dify API配置 - 使用completion模式
+  const difyApiUrl = import.meta.env.VITE_DIFY_API_URL || 'https://dify.aipfuture.com/v1/completion-messages'
   const difyApiKey = import.meta.env.VITE_DIFY_API_KEY
   
   // 如果没有配置Dify API密钥，使用降级回复
   if (!difyApiKey) {
+    console.warn('Dify API密钥未配置，使用降级回复')
     return getFallbackResponse(message)
   }
   
@@ -157,26 +158,26 @@ const fetchDifyAPI = async (message) => {
       body: JSON.stringify({
         inputs: {},
         query: message,
-        response_mode: 'blocking', // completion模式通常使用blocking
+        response_mode: 'blocking',
         user: 'poetry-platform-user'
       })
     })
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const errorText = await response.text()
+      console.error('Dify API请求失败:', response.status, errorText)
+      throw new Error(`Dify API请求失败: ${response.status}`)
     }
     
     const data = await response.json()
     
-    // 处理Dify响应格式 - completion模式可能有不同的字段
+    // 处理Dify响应格式 - chat模式
     if (data.answer) {
       return data.answer
     } else if (data.data && data.data.answer) {
       return data.data.answer
     } else if (data.message) {
       return data.message
-    } else if (data.choices && data.choices[0] && data.choices[0].message) {
-      return data.choices[0].message.content
     } else {
       console.log('Dify响应数据:', data)
       return '我收到了您的消息，但暂时无法提供具体回答。'
