@@ -139,7 +139,7 @@ const sendMessage = async () => {
 // 调用Dify API
 const fetchDifyAPI = async (message) => {
   // Dify API配置
-  const difyApiUrl = import.meta.env.VITE_DIFY_API_URL || 'https://api.dify.ai/v1/chat-messages'
+  const difyApiUrl = import.meta.env.VITE_DIFY_API_URL || 'https://api.dify.ai/v1/completion-messages'
   const difyApiKey = import.meta.env.VITE_DIFY_API_KEY
   
   // 如果没有配置Dify API密钥，使用降级回复
@@ -157,7 +157,7 @@ const fetchDifyAPI = async (message) => {
       body: JSON.stringify({
         inputs: {},
         query: message,
-        response_mode: 'streaming', // 或 'blocking'
+        response_mode: 'blocking', // completion模式通常使用blocking
         user: 'poetry-platform-user'
       })
     })
@@ -168,12 +168,17 @@ const fetchDifyAPI = async (message) => {
     
     const data = await response.json()
     
-    // 处理Dify响应格式
+    // 处理Dify响应格式 - completion模式可能有不同的字段
     if (data.answer) {
       return data.answer
     } else if (data.data && data.data.answer) {
       return data.data.answer
+    } else if (data.message) {
+      return data.message
+    } else if (data.choices && data.choices[0] && data.choices[0].message) {
+      return data.choices[0].message.content
     } else {
+      console.log('Dify响应数据:', data)
       return '我收到了您的消息，但暂时无法提供具体回答。'
     }
     
