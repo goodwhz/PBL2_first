@@ -9,7 +9,7 @@ const isProduction = import.meta.env.PROD
 let supabaseClient
 
 if (isProduction && (!supabaseUrl || !supabaseAnonKey)) {
-  console.error('缺少Supabase环境变量配置，请检查Vercel环境变量设置')
+  console.error('缺少Supabase环境变量配置，请检查Netlify/Vercel环境变量设置')
   // 生产环境下不抛出错误，而是创建降级客户端
   supabaseClient = createClient('https://fallback.supabase.co', 'fallback-key', {
     auth: {
