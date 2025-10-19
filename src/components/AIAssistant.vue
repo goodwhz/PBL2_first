@@ -77,7 +77,9 @@ const quickQuestions = ref([
   '推荐一首李白的诗',
   '唐诗的特点是什么？',
   '如何欣赏古诗？',
-  '宋词和唐诗的区别'
+  '宋词和唐诗的区别',
+  '介绍一下杜甫的诗歌风格',
+  '古诗的韵律规则有哪些？'
 ])
 
 // 初始化欢迎消息
@@ -112,7 +114,7 @@ const scrollToBottom = () => {
   })
 }
 
-// 发送消息到N8N工作流
+// 发送消息到Dify平台
 const sendMessage = async () => {
   const input = userInput.value.trim()
   if (!input) return
@@ -123,8 +125,8 @@ const sendMessage = async () => {
   isLoading.value = true
   
   try {
-    // 调用N8N工作流API
-    const response = await fetchN8NWorkflow(input)
+    // 调用Dify API
+    const response = await fetchDifyAPI(input)
     addMessage('ai', response)
   } catch (error) {
     console.error('AI助手请求失败:', error)
@@ -134,21 +136,29 @@ const sendMessage = async () => {
   }
 }
 
-// 调用N8N工作流
-const fetchN8NWorkflow = async (message) => {
-  // 这里替换为您的N8N工作流Webhook URL
-  const n8nWebhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://your-n8n-instance.com/webhook/poetry-assistant'
+// 调用Dify API
+const fetchDifyAPI = async (message) => {
+  // Dify API配置
+  const difyApiUrl = import.meta.env.VITE_DIFY_API_URL || 'https://api.dify.ai/v1/chat-messages'
+  const difyApiKey = import.meta.env.VITE_DIFY_API_KEY
+  
+  // 如果没有配置Dify API密钥，使用降级回复
+  if (!difyApiKey) {
+    return getFallbackResponse(message)
+  }
   
   try {
-    const response = await fetch(n8nWebhookUrl, {
+    const response = await fetch(difyApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${difyApiKey}`
       },
       body: JSON.stringify({
-        message: message,
-        timestamp: new Date().toISOString(),
-        context: 'poetry-platform'
+        inputs: {},
+        query: message,
+        response_mode: 'streaming', // 或 'blocking'
+        user: 'poetry-platform-user'
       })
     })
     
@@ -157,10 +167,19 @@ const fetchN8NWorkflow = async (message) => {
     }
     
     const data = await response.json()
-    return data.response || '我收到了您的消息，但暂时无法提供具体回答。'
+    
+    // 处理Dify响应格式
+    if (data.answer) {
+      return data.answer
+    } else if (data.data && data.data.answer) {
+      return data.data.answer
+    } else {
+      return '我收到了您的消息，但暂时无法提供具体回答。'
+    }
     
   } catch (error) {
-    // 降级处理：如果N8N不可用，使用本地回复
+    console.error('Dify API请求失败:', error)
+    // 降级处理：如果Dify不可用，使用本地回复
     return getFallbackResponse(message)
   }
 }
