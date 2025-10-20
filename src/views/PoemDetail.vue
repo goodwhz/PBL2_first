@@ -113,15 +113,18 @@ const relatedPoems = computed(() => {
 })
 
 const getPoemAnalysis = (poemId) => {
-  const analyses = {
-    1: '这首诗通过明月、地上霜的意象，表达了游子思乡之情。语言朴素自然，意境深远。',
-    2: '描绘春天早晨的景色，语言清新自然，充满生活情趣。',
-    3: '通过登高望远，表达了积极向上的进取精神。',
-    4: '借红豆寄托相思之情，语言含蓄优美。',
-    5: '描绘江雪独钓的孤寂景象，意境清冷高远。',
-    6: '反映农民劳作的艰辛，语言朴实感人。'
-  }
-  return analyses[poemId] || '这首诗词意境优美，值得细细品味。'
+  // 通用诗词分析，适用于所有诗词
+  const genericAnalyses = [
+    '这首诗词意境优美，语言精炼，展现了作者深厚的文学功底。',
+    '诗词通过生动的意象和优美的韵律，表达了丰富的情感内涵。',
+    '作品结构严谨，对仗工整，体现了古典诗词的艺术魅力。',
+    '诗词语言凝练，意境深远，给人以美的享受和思想启迪。',
+    '通过巧妙的比喻和象征手法，诗词传达了深刻的人生哲理。'
+  ]
+  
+  // 根据诗词ID生成一致的随机分析（确保同一诗词总是显示相同分析）
+  const randomIndex = (poemId * 13) % genericAnalyses.length
+  return genericAnalyses[randomIndex]
 }
 
 const toggleAnnotations = () => {
@@ -157,24 +160,147 @@ onMounted(async () => {
   const poemId = parseInt(route.params.id)
   try {
     poem.value = await poemStore.fetchPoemById(poemId)
-    // 如果获取到的数据是降级数据，显示友好提示
-    if (poem.value && poem.value.content.includes('暂时无法获取诗词内容')) {
-      console.warn('诗词数据加载异常，使用降级数据')
+    
+    // 检查是否为降级数据或空数据
+    if (!poem.value || poem.value.content.includes('暂时无法获取诗词内容')) {
+      console.warn('诗词数据加载异常，使用本地示例数据')
+      // 提供更好的降级体验
+      poem.value = getFallbackPoemData(poemId)
     }
   } catch (error) {
     console.error('获取诗词详情失败:', error)
-    // 设置降级数据
-    poem.value = {
-      id: poemId,
-      title: '诗词详情',
-      content: '暂时无法获取诗词内容，请检查网络连接或稍后重试。',
-      author: { name: '未知作者' },
-      dynasty: { name: '未知朝代' },
-      tags: [],
-      background: '诗词信息暂时无法加载。'
-    }
+    poem.value = getFallbackPoemData(poemId)
   }
 })
+
+// 改进的降级数据函数
+const getFallbackPoemData = (poemId) => {
+  const fallbackPoems = {
+    1: {
+      id: poemId,
+      title: '静夜思',
+      content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
+      author: { name: '李白' },
+      author_name: '李白',
+      dynasty: { name: '唐' },
+      dynasty_name: '唐',
+      tags: ['思乡', '明月', '夜晚'],
+      background: '这首诗是李白在异乡思念故乡时所作，通过明月意象表达思乡之情。'
+    },
+    2: {
+      id: poemId,
+      title: '春晓',
+      content: '春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。',
+      author: { name: '孟浩然' },
+      author_name: '孟浩然',
+      dynasty: { name: '唐' },
+      dynasty_name: '唐',
+      tags: ['春天', '早晨', '自然'],
+      background: '描绘春天早晨的景色，语言清新自然，充满生活情趣。'
+    },
+    3: {
+      id: poemId,
+      title: '登鹳雀楼',
+      content: '白日依山尽，黄河入海流。欲穷千里目，更上一层楼。',
+      author: { name: '王之涣' },
+      author_name: '王之涣',
+      dynasty: { name: '唐' },
+      dynasty_name: '唐',
+      tags: ['登高', '进取', '景色'],
+      background: '通过登高望远，表达了积极向上的进取精神。'
+    },
+    4: {
+      id: poemId,
+      title: '相思',
+      content: '红豆生南国，春来发几枝。愿君多采撷，此物最相思。',
+      author: { name: '王维' },
+      author_name: '王维',
+      dynasty: { name: '唐' },
+      dynasty_name: '唐',
+      tags: ['相思', '爱情', '红豆'],
+      background: '借红豆寄托相思之情，语言含蓄优美。'
+    },
+    5: {
+      id: poemId,
+      title: '江雪',
+      content: '千山鸟飞绝，万径人踪灭。孤舟蓑笠翁，独钓寒江雪。',
+      author: { name: '柳宗元' },
+      author_name: '柳宗元',
+      dynasty: { name: '唐' },
+      dynasty_name: '唐',
+      tags: ['冬天', '孤独', '雪景'],
+      background: '描绘江雪独钓的孤寂景象，意境清冷高远。'
+    },
+    6: {
+      id: poemId,
+      title: '悯农',
+      content: '锄禾日当午，汗滴禾下土。谁知盘中餐，粒粒皆辛苦。',
+      author: { name: '李绅' },
+      author_name: '李绅',
+      dynasty: { name: '唐' },
+      dynasty_name: '唐',
+      tags: ['农民', '劳动', '节俭'],
+      background: '反映农民劳作的艰辛，语言朴实感人。'
+    },
+    7: {
+      id: poemId,
+      title: '望庐山瀑布',
+      content: '日照香炉生紫烟，遥看瀑布挂前川。飞流直下三千尺，疑是银河落九天。',
+      author: { name: '李白' },
+      author_name: '李白',
+      dynasty: { name: '唐' },
+      dynasty_name: '唐',
+      tags: ['瀑布', '庐山', '壮观'],
+      background: '描绘庐山瀑布的壮丽景色，想象奇特，气势磅礴。'
+    },
+    8: {
+      id: poemId,
+      title: '黄鹤楼送孟浩然之广陵',
+      content: '故人西辞黄鹤楼，烟花三月下扬州。孤帆远影碧空尽，唯见长江天际流。',
+      author: { name: '李白' },
+      author_name: '李白',
+      dynasty: { name: '唐' },
+      dynasty_name: '唐',
+      tags: ['送别', '友情', '长江'],
+      background: '送别友人时的深情厚谊，意境开阔，情感真挚。'
+    },
+    9: {
+      id: poemId,
+      title: '枫桥夜泊',
+      content: '月落乌啼霜满天，江枫渔火对愁眠。姑苏城外寒山寺，夜半钟声到客船。',
+      author: { name: '张继' },
+      author_name: '张继',
+      dynasty: { name: '唐' },
+      dynasty_name: '唐',
+      tags: ['夜晚', '愁思', '枫桥'],
+      background: '描绘枫桥夜泊的愁思，意境深远，富有画面感。'
+    },
+    10: {
+      id: poemId,
+      title: '游子吟',
+      content: '慈母手中线，游子身上衣。临行密密缝，意恐迟迟归。谁言寸草心，报得三春晖。',
+      author: { name: '孟郊' },
+      author_name: '孟郊',
+      dynasty: { name: '唐' },
+      dynasty_name: '唐',
+      tags: ['母爱', '游子', '感恩'],
+      background: '歌颂母爱的伟大，语言质朴，情感真挚动人。'
+    }
+  }
+  
+  // 如果请求的ID不在预设范围内，返回通用降级数据
+  return fallbackPoems[poemId] || {
+    id: poemId,
+    title: `诗词 #${poemId}`,
+    content: '这首诗词的内容暂时无法加载。请检查网络连接或配置Supabase数据库。',
+    author: { name: '未知作者' },
+    author_name: '未知作者',
+    dynasty: { name: '未知朝代' },
+    dynasty_name: '未知朝代',
+    tags: ['诗词'],
+    background: '诗词信息暂时无法加载，请确保Supabase连接配置正确。'
+  }
+}
 </script>
 
 <style scoped>

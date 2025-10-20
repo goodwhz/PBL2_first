@@ -13,9 +13,9 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 #### 步骤2: 检查Supabase CORS配置
 在Supabase项目设置中，确保添加了Vercel域名：
-```
-https://your-project.vercel.app
-```
+- 登录Supabase Dashboard → Settings → API
+- 在"Additional Configuration"的CORS设置中添加您的Vercel域名
+- 格式：`https://your-project-name.vercel.app`（替换为实际域名）
 
 #### 步骤3: 查看浏览器控制台错误
 1. 打开部署的Vercel网站
