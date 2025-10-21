@@ -104,6 +104,16 @@ export class PoemService {
         dynasty: { name: '唐' },
         dynasty_name: '唐',
         tags: ['农民', '劳动', '节俭']
+      },
+      {
+        id: 58,
+        title: '水调歌头',
+        content: '明月几时有？把酒问青天。不知天上宫阙，今夕是何年。我欲乘风归去，又恐琼楼玉宇，高处不胜寒。起舞弄清影，何似在人间。转朱阁，低绮户，照无眠。不应有恨，何事长向别时圆？人有悲欢离合，月有阴晴圆缺，此事古难全。但愿人长久，千里共婵娟。',
+        author: { name: '苏轼' },
+        author_name: '苏轼',
+        dynasty: { name: '宋' },
+        dynasty_name: '宋',
+        tags: ['中秋', '思念', '月亮']
       }
     ]
     
@@ -124,8 +134,25 @@ export class PoemService {
   // 根据ID获取诗歌详情
   static async getPoemById(id) {
     try {
-      // 首先尝试从Supabase获取数据
-      const { data, error } = await supabase
+      // 首先尝试通过numeric_id查询
+      const { data: dataByNumericId, error: numericError } = await supabase
+        .from(TABLES.POEMS)
+        .select(`
+          *,
+          author:author_id(*),
+          dynasty:dynasty_id(*),
+          tags:poem_tags(tag:tag_id(*))
+        `)
+        .eq('numeric_id', id)
+        .single()
+
+      if (!numericError && dataByNumericId) {
+        dataByNumericId.tags = dataByNumericId.tags.map(pt => pt.tag)
+        return dataByNumericId
+      }
+
+      // 如果numeric_id查询失败，尝试通过UUID查询
+      const { data: dataById, error: idError } = await supabase
         .from(TABLES.POEMS)
         .select(`
           *,
@@ -136,17 +163,46 @@ export class PoemService {
         .eq('id', id)
         .single()
 
-      if (error) {
-        console.warn('Supabase查询失败，使用本地数据:', error.message)
-        return this.getLocalPoemData(id)
+      if (!idError && dataById) {
+        dataById.tags = dataById.tags.map(pt => pt.tag)
+        return dataById
       }
-      
-      if (data) {
-        data.tags = data.tags.map(pt => pt.tag)
-        return data
+
+      // 如果都失败，尝试通过标题映射
+      const titleMapping = {
+        1: '静夜思',
+        2: '春晓', 
+        3: '登鹳雀楼',
+        4: '相思',
+        5: '江雪',
+        6: '悯农',
+        7: '望庐山瀑布',
+        8: '黄鹤楼送孟浩然之广陵',
+        9: '枫桥夜泊',
+        10: '游子吟',
+        58: '水调歌头'
       }
-      
-      // 如果没有数据，返回本地数据
+
+      const title = titleMapping[id]
+      if (title) {
+        const { data: dataByTitle, error: titleError } = await supabase
+          .from(TABLES.POEMS)
+          .select(`
+            *,
+            author:author_id(*),
+            dynasty:dynasty_id(*),
+            tags:poem_tags(tag:tag_id(*))
+          `)
+          .eq('title', title)
+          .single()
+
+        if (!titleError && dataByTitle) {
+          dataByTitle.tags = dataByTitle.tags.map(pt => pt.tag)
+          return dataByTitle
+        }
+      }
+
+      console.warn('Supabase查询失败，使用本地数据:', numericError?.message || idError?.message)
       return this.getLocalPoemData(id)
     } catch (error) {
       console.error('获取诗歌详情异常:', error)
@@ -222,6 +278,17 @@ export class PoemService {
         dynasty_name: '唐',
         tags: ['农民', '劳动', '节俭'],
         background: '反映农民劳作的艰辛，语言朴实感人。'
+      },
+      58: {
+        id: 58,
+        title: '水调歌头',
+        content: '明月几时有？把酒问青天。不知天上宫阙，今夕是何年。我欲乘风归去，又恐琼楼玉宇，高处不胜寒。起舞弄清影，何似在人间。转朱阁，低绮户，照无眠。不应有恨，何事长向别时圆？人有悲欢离合，月有阴晴圆缺，此事古难全。但愿人长久，千里共婵娟。',
+        author: { name: '苏轼' },
+        author_name: '苏轼',
+        dynasty: { name: '宋' },
+        dynasty_name: '宋',
+        tags: ['中秋', '思念', '月亮'],
+        background: '中秋望月怀人之作，表达了对胞弟苏辙的无限怀念。'
       }
     }
     

@@ -72,4 +72,6 @@ node debug-supabase.js
 3. ✅ 创建 `修复Supabase数据指南.md` - 详细修复指导
 4. ✅ 创建本解决方案文档
 
-所有修改已完成，项目现在具备了完整的Supabase数据修复指导。
+所有修改已完成，项目现在具备了完整的Supabase数据修复指导。https://your-project.netlify.app
+http://localhost:3000
+http://localhost:5173

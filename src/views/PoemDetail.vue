@@ -285,6 +285,17 @@ const getFallbackPoemData = (poemId) => {
       dynasty_name: '唐',
       tags: ['母爱', '游子', '感恩'],
       background: '歌颂母爱的伟大，语言质朴，情感真挚动人。'
+    },
+    58: {
+      id: poemId,
+      title: '水调歌头',
+      content: '明月几时有？把酒问青天。不知天上宫阙，今夕是何年。我欲乘风归去，又恐琼楼玉宇，高处不胜寒。起舞弄清影，何似在人间。转朱阁，低绮户，照无眠。不应有恨，何事长向别时圆？人有悲欢离合，月有阴晴圆缺，此事古难全。但愿人长久，千里共婵娟。',
+      author: { name: '苏轼' },
+      author_name: '苏轼',
+      dynasty: { name: '宋' },
+      dynasty_name: '宋',
+      tags: ['中秋', '思念', '月亮'],
+      background: '中秋望月怀人之作，表达了对胞弟苏辙的无限怀念。'
     }
   }
   
